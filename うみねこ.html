@@ -52,7 +52,7 @@ button.sub{padding:6px 12px;border-radius:8px;border:1px solid var(--bd);backgro
 <div class="row"><label for="spd">1周の時間</label><select id="spd"></select></div>
 <div class="row"><label for="lat">入力遅延補正 <span id="latv">0</span>ms</label><input type="range" id="lat" min="-100" max="100" step="5" value="0"></div>
 <div class="row"><label><input type="checkbox" id="nums"> コマ番号を表示</label><label><input type="checkbox" id="auto"> 停止後に自動で再回転</label></div>
-<div class="row"><label><input type="checkbox" id="snap"> 停止時にコマへ吸着させる（オフ＝押した位置でそのまま停止）</label></div>
+<div class="row"><label><input type="checkbox" id="snap"> 停止時にコマへ吸着させる（オフ＝直前に表示していた位置でそのまま停止）</label></div>
 <div class="row"><label for="imgf">リール画像（必須）</label><input type="file" id="imgf" accept="image/*"></div>
 <div class="row"><span class="mini">このアプリは、お送りいただいた番号付きリール画像（左に数字帯がある縦長画像）専用です。この画像を読み込んでください。画像はこの端末のブラウザ内にだけ保存され、外部には送信されません。</span><button class="sub" id="imgx">画像を外す</button></div>
 <div class="mini">遅延補正：+ にすると押した時刻をその分だけ前にずらして判定します（画面や端末の遅れの調整用）。</div>
@@ -135,7 +135,7 @@ function stop(t){
   const p=curP(t-cfg.lat),fin=Math.round(p),sym=wrap(fin);
   const off=((p-cfg.target+10)%20+20)%20-10,ms=off*cfg.speed*1000/20;
   const dk=((sym-cfg.target+10)%20+20)%20-10,ok=dk===0;
-  pos=cfg.snap?fin:p;st='stop';lastStop=performance.now();$('btn').textContent='スタート';
+  if(cfg.snap)pos=fin;st='stop';lastStop=performance.now();$('btn').textContent='スタート';
   hist.push({ok,ms});streak=ok?streak+1:0;best=Math.max(best,streak);
   const sg=(ms>0?'+':'')+ms.toFixed(1)+'ms';
   $('res').innerHTML=ok
