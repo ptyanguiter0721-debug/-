@@ -32,30 +32,21 @@ select{padding:6px;border-radius:6px;border:1px solid var(--bd);background:var(-
 .chip.o{background:var(--ok)}.chip.x{background:var(--ac)}
 .mini{font-size:12px;color:var(--mut)}
 button.sub{padding:6px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg);font-size:13px}
-
-html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-#app{height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;padding:8px 12px 12px;max-width:640px;margin:0 auto}
-#top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-#top .mini{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#stage{flex:1;min-height:0;position:relative}
-#stage canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:none}
-#res{min-height:44px}
-#btn{padding:24px 0}
-#panel{position:fixed;inset:0;z-index:10;background:var(--bg);overflow:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(24px + env(safe-area-inset-bottom,0px))}
-#panel .in{max-width:520px;margin:0 auto}
-#panel[hidden]{display:none}
 </style>
 </head>
 <body>
-<div id="app">
-<div id="top"><span class="mini" id="tgtInfo"></span><button class="sub" id="fs">全画面</button><button class="sub" id="gear">⚙ 設定</button></div>
-<div id="stage"><canvas id="cv"></canvas></div>
+<div class="wrap">
+<h1>左リール ビタ押し練習</h1>
+
+<div class="card reelbox">
+<div class="mini" id="tgtInfo"></div>
+<canvas id="cv"></canvas>
 <div id="res">画像を読み込んでスタート</div>
-<button id="btn">スタート</button>
 </div>
 
-<div id="panel" hidden><div class="in">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h1 style="margin:0">設定・記録</h1><button class="sub" id="close">閉じる</button></div>
+<button id="btn">スタート</button>
+<div class="mini" style="text-align:center;margin:6px 0 12px">リール／ボタンをタップ、またはスペース・Enterキーでも止められます</div>
+
 <div class="card">
 <div class="row"><label for="tgt">狙う図柄（中段）</label><select id="tgt"></select></div>
 <div class="row"><label for="spd">1周の時間</label><select id="spd"></select></div>
@@ -63,9 +54,10 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 <div class="row"><label><input type="checkbox" id="nums"> コマ番号を表示</label><label><input type="checkbox" id="auto"> 停止後に自動で再回転</label></div>
 <div class="row"><label><input type="checkbox" id="snap"> 停止時にコマへ吸着させる（オフ＝直前に表示していた位置でそのまま停止）</label></div>
 <div class="row"><label for="imgf">リール画像（必須）</label><input type="file" id="imgf" accept="image/*"></div>
-<div class="row"><span class="mini">お送りいただいた番号付きリール画像（左に数字帯がある縦長画像）専用です。画像はこの端末のブラウザ内にだけ保存されます。</span><button class="sub" id="imgx">画像を外す</button></div>
-<div class="mini">遅延補正：+ にすると押した時刻をその分だけ前にずらして判定します。判定は「押した瞬間に中段に最も近い図柄が成功」です（スベリ無し）。</div>
+<div class="row"><span class="mini">このアプリは、お送りいただいた番号付きリール画像（左に数字帯がある縦長画像）専用です。この画像を読み込んでください。画像はこの端末のブラウザ内にだけ保存され、外部には送信されません。</span><button class="sub" id="imgx">画像を外す</button></div>
+<div class="mini">遅延補正：+ にすると押した時刻をその分だけ前にずらして判定します（画面や端末の遅れの調整用）。</div>
 </div>
+
 <div class="card">
 <div class="stats">
 <div>試行<b id="sN">0</b></div><div>成功<b id="sO">0</b></div><div>成功率<b id="sR">-</b></div>
@@ -75,7 +67,8 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 <div style="margin-top:10px;text-align:right"><button class="sub" id="reset">記録リセット</button></div>
 <div class="mini">平均ズレ：＋は遅め、−は早めに押す傾向です。</div>
 </div>
-</div></div>
+<div class="mini" style="text-align:center">判定は「押した瞬間に中段に最も近い図柄が成功」として計算しています（スベリ無し）。</div>
+</div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -84,9 +77,7 @@ const S=[0,m('replay','リプレイ'),m('bell','ベル'),m('7','青7','#2f6bff')
 const wrap=k=>((k-1)%20+20)%20+1;
 const cv=$('cv'),ctx=cv.getContext('2d');
 const CW=260,CH=300,H=100,dpr=window.devicePixelRatio||1;
-let sc=1;
-function fit(){const g=$('stage'),w=g.clientWidth,h=g.clientHeight;if(!w||!h)return;sc=Math.min(w/CW,h/CH,3);
-  cv.width=Math.round(CW*sc*dpr);cv.height=Math.round(CH*sc*dpr);cv.style.width=CW*sc+'px';cv.style.height=CH*sc+'px'}
+cv.width=CW*dpr;cv.height=CH*dpr;cv.style.width=CW+'px';cv.style.height=CH+'px';
 
 const IMG=new Image();let KW=0,KH=0,SX=0;
 IMG.onload=()=>{SX=IMG.naturalWidth*0.356;KW=IMG.naturalWidth*0.621;KH=IMG.naturalHeight/20};
@@ -121,7 +112,7 @@ $('auto').onchange=onSet(function(){cfg.auto=this.checked});
 /* drawing */
 const hasImg=()=>IMG.complete&&IMG.naturalWidth&&KW;
 function draw(p){
-  ctx.setTransform(dpr*sc,0,0,dpr*sc,0,0);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.fillStyle='#e9e0c4';ctx.fillRect(0,0,CW,CH);
   if(!hasImg()){ctx.fillStyle='#555';ctx.font='15px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('リール画像を読み込んでください',CW/2,CH/2-10);ctx.fillText('（下の設定欄から選択）',CW/2,CH/2+14);return}
@@ -162,7 +153,7 @@ function evT(e){const n=performance.now();return(e.timeStamp>0&&e.timeStamp<=n+5
 $('btn').addEventListener('pointerdown',e=>{e.preventDefault();press(evT(e))});
 cv.addEventListener('pointerdown',e=>{e.preventDefault();press(evT(e))});
 addEventListener('keydown',e=>{
-  if((e.code==='Space'||e.code==='Enter')&&!e.repeat&&$('panel').hidden){e.preventDefault();press(evT(e))}
+  if((e.code==='Space'||e.code==='Enter')&&!e.repeat){e.preventDefault();press(evT(e))}
 });
 
 function render(){
@@ -174,13 +165,6 @@ function render(){
 }
 $('imgf').onchange=function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{IMG.src=r.result;try{localStorage.setItem('bita_img',r.result)}catch(e){}};r.readAsDataURL(f)};
 $('imgx').onclick=()=>{try{localStorage.removeItem('bita_img')}catch(e){}IMG.removeAttribute('src');KW=0;$('imgf').value=''};
-$('gear').onclick=()=>{$('panel').hidden=false};
-$('close').onclick=()=>{$('panel').hidden=true;fit()};
-const FSE=document.documentElement;
-if(!FSE.requestFullscreen&&!FSE.webkitRequestFullscreen)$('fs').style.display='none';
-$('fs').onclick=()=>{try{if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{(FSE.requestFullscreen||FSE.webkitRequestFullscreen).call(FSE)}}catch(e){}};
-addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,200));
-requestAnimationFrame(fit);fit();
 $('reset').onclick=()=>{hist=[];streak=0;best=0;render()};
 render();
 </script>
