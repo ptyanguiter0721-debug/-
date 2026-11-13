@@ -82,8 +82,9 @@ cv.width=CW*dpr;cv.height=CH*dpr;cv.style.width=CW+'px';cv.style.height=CH+'px';
 const IMG=new Image();let KW=0,KH=0,SX=0;
 IMG.onload=()=>{SX=IMG.naturalWidth*0.356;KW=IMG.naturalWidth*0.621;KH=IMG.naturalHeight/20};
 try{const sv=localStorage.getItem('bita_img');if(sv)IMG.src=sv}catch(e){}
-let cfg={target:19,speed:0.75,lat:0,nums:true,auto:true,snap:false};
+let cfg={target:19,speed:0.75,lat:0,nums:true,auto:false,snap:false};
 try{Object.assign(cfg,JSON.parse(localStorage.getItem('bita_cfg')||'{}'))}catch(e){}
+if(!cfg.v2){cfg.auto=false;cfg.v2=1}
 const save=()=>{try{localStorage.setItem('bita_cfg',JSON.stringify(cfg))}catch(e){}};
 
 let st='stop',pos=1,p0=1,t0=0,lastStop=0,autoT=null,hist=[],streak=0,best=0;
