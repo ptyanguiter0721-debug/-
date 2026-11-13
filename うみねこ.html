@@ -32,13 +32,22 @@ select{padding:6px;border-radius:6px;border:1px solid var(--bd);background:var(-
 .chip.o{background:var(--ok)}.chip.x{background:var(--ac)}
 .mini{font-size:12px;color:var(--mut)}
 button.sub{padding:6px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg);font-size:13px}
+#fsx{display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);right:8px;z-index:5;opacity:.8}
+body.fsm{overflow:hidden}
+body.fsm #fsx{display:block}
+body.fsm .wrap{max-width:640px;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;padding:8px 12px 12px;box-sizing:border-box}
+body.fsm .wrap>*:not(#rb):not(#btn){display:none}
+body.fsm #tgtInfo{display:none}
+body.fsm #rb{flex:1;min-height:0;overflow:hidden;border:0;background:transparent;margin:0;padding:0;justify-content:center}
+body.fsm canvas{max-width:none}
+body.fsm #btn{padding:26px 0}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>左リール ビタ押し練習</h1>
 
-<div class="card reelbox">
+<div class="card reelbox" id="rb">
 <div class="mini" id="tgtInfo"></div>
 <canvas id="cv"></canvas>
 <div id="res">画像を読み込んでスタート</div>
@@ -48,6 +57,7 @@ button.sub{padding:6px 12px;border-radius:8px;border:1px solid var(--bd);backgro
 <div class="mini" style="text-align:center;margin:6px 0 12px">リール／ボタンをタップ、またはスペース・Enterキーでも止められます</div>
 
 <div class="card">
+<div class="row"><button class="sub" id="fs">全画面表示にする</button><span class="mini">リールとボタンだけを画面いっぱいに表示します。終了は右上の「✕ 戻る」かEscキー。</span></div>
 <div class="row"><label for="tgt">狙う図柄（中段）</label><select id="tgt"></select></div>
 <div class="row"><label for="spd">1周の時間</label><select id="spd"></select></div>
 <div class="row"><label for="lat">入力遅延補正 <span id="latv">0</span>ms</label><input type="range" id="lat" min="-100" max="100" step="5" value="0"></div>
@@ -55,6 +65,7 @@ button.sub{padding:6px 12px;border-radius:8px;border:1px solid var(--bd);backgro
 <div class="row"><label><input type="checkbox" id="snap"> 停止時にコマへ吸着させる（オフ＝直前に表示していた位置でそのまま停止）</label></div>
 <div class="row"><label for="imgf">リール画像（必須）</label><input type="file" id="imgf" accept="image/*"></div>
 <div class="row"><span class="mini">このアプリは、お送りいただいた番号付きリール画像（左に数字帯がある縦長画像）専用です。この画像を読み込んでください。画像はこの端末のブラウザ内にだけ保存され、外部には送信されません。</span><button class="sub" id="imgx">画像を外す</button></div>
+<div class="row"><button class="sub" id="bake">この画像を内蔵した単体HTMLを保存</button><span class="mini">画像を一度読み込んでから押すと、画像入りのHTMLファイルを端末に保存します。以後はそのファイルを開くだけで、画像の読み込みは不要です。</span></div>
 <div class="mini">遅延補正：+ にすると押した時刻をその分だけ前にずらして判定します（画面や端末の遅れの調整用）。</div>
 </div>
 
@@ -70,14 +81,23 @@ button.sub{padding:6px 12px;border-radius:8px;border:1px solid var(--bd);backgro
 <div class="mini" style="text-align:center">判定は「押した瞬間に中段に最も近い図柄が成功」として計算しています（スベリ無し）。</div>
 </div>
 
+<button id="fsx" class="sub">✕ 戻る</button>
 <script>
 const $=id=>document.getElementById(id);
 const m=(t,n,c)=>({t,n,c});
 const S=[0,m('replay','リプレイ'),m('bell','ベル'),m('7','青7','#2f6bff'),m('cherry','チェリー'),m('melon','スイカ'),m('replay','リプレイ'),m('bell','ベル'),m('orange','オレンジ'),m('7','白7','#f4ecd0'),m('melon','スイカ'),m('replay','リプレイ'),m('bell','ベル'),m('bar','BAR'),m('cherry','チェリー'),m('melon','スイカ'),m('replay','リプレイ'),m('bell','ベル'),m('orange','オレンジ'),m('7','赤7','#e5202a'),m('melon','スイカ')];
 const wrap=k=>((k-1)%20+20)%20+1;
 const cv=$('cv'),ctx=cv.getContext('2d');
-const CW=260,CH=300,H=100,dpr=window.devicePixelRatio||1;
-cv.width=CW*dpr;cv.height=CH*dpr;cv.style.width=CW+'px';cv.style.height=CH+'px';
+const CW=260,CH=380,H=100,dpr=window.devicePixelRatio||1;
+let sc=1;
+function fit(){
+  if(document.body.classList.contains('fsm')){
+    const b=$('rb'),w=b.clientWidth-8,h=b.clientHeight-$('res').offsetHeight-14;
+    sc=Math.max(.3,Math.min(w/CW,h/CH,3));
+  }else sc=1;
+  cv.width=Math.round(CW*sc*dpr);cv.height=Math.round(CH*sc*dpr);cv.style.width=CW*sc+'px';cv.style.height=CH*sc+'px';
+}
+fit();
 
 const IMG=new Image();let KW=0,KH=0,SX=0;
 IMG.onload=()=>{SX=IMG.naturalWidth*0.356;KW=IMG.naturalWidth*0.621;KH=IMG.naturalHeight/20};
@@ -112,12 +132,12 @@ $('auto').onchange=onSet(function(){cfg.auto=this.checked});
 /* drawing */
 const hasImg=()=>IMG.complete&&IMG.naturalWidth&&KW;
 function draw(p){
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.setTransform(dpr*sc,0,0,dpr*sc,0,0);
   ctx.fillStyle='#e9e0c4';ctx.fillRect(0,0,CW,CH);
   if(!hasImg()){ctx.fillStyle='#555';ctx.font='15px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('リール画像を読み込んでください',CW/2,CH/2-10);ctx.fillText('（下の設定欄から選択）',CW/2,CH/2+14);return}
   ctx.save();ctx.beginPath();ctx.rect(0,0,CW,CH);ctx.clip();
-  const dw=CW-44,dh=dw*KH/KW,sc=H/dh;
+  const dw=CW-44,dh=dw*KH/KW;
   for(let k=1;k<=20;k++){
     const d=((k-p+10)%20+20)%20-10;
     if(Math.abs(d)>2)continue;
@@ -165,6 +185,43 @@ function render(){
 }
 $('imgf').onchange=function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{IMG.src=r.result;try{localStorage.setItem('bita_img',r.result)}catch(e){}};r.readAsDataURL(f)};
 $('imgx').onclick=()=>{try{localStorage.removeItem('bita_img')}catch(e){}IMG.removeAttribute('src');KW=0;$('imgf').value=''};
+$('bake').onclick=async()=>{
+  if(!hasImg()){$('res').textContent='先にリール画像を読み込んでください';return}
+  const c=document.documentElement.cloneNode(true);
+  ['tgt','spd','hist'].forEach(i=>{c.querySelector('#'+i).innerHTML=''});
+  c.querySelector('#res').textContent='スタートを押してね';c.querySelector('#btn').textContent='スタート';
+  ['sN','sO','sS','sB'].forEach(i=>{c.querySelector('#'+i).textContent='0'});
+  ['sR','sM'].forEach(i=>{c.querySelector('#'+i).textContent='-'});
+  c.querySelector('#tgtInfo').textContent='';
+  ['imgf','imgx','bake'].forEach(i=>{c.querySelector('#'+i).closest('.row').style.display='none'});
+  const sc=c.querySelector('body script'),data=IMG.src;
+  sc.textContent=sc.textContent.replace("try{const sv=localStorage.getItem('bita_img');if(sv)IMG.src=sv}catch(e){}",()=>"IMG.src="+JSON.stringify(data)+";");
+  const html='<!DOCTYPE html>\n'+c.outerHTML,name='左リール_ビタ押し練習_画像内蔵.html';
+  let dl=null;try{dl=window.claude&&await claude.use('downloads')}catch(e){}
+  try{
+    if(dl){await dl.save({filename:name,data:html})}
+    else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
+  }catch(e){if(!e||e.code!=='declined')$('res').textContent='保存できませんでした'}
+};
+let apiFs=false;
+const FSE=document.documentElement;
+function enterFs(){
+  document.body.classList.add('fsm');window.scrollTo(0,0);
+  try{const r=FSE.requestFullscreen||FSE.webkitRequestFullscreen;if(r){apiFs=true;const pr=r.call(FSE);if(pr&&pr.catch)pr.catch(()=>{apiFs=false})}}catch(e){apiFs=false}
+  fit();setTimeout(fit,300);
+}
+function exitFs(){
+  document.body.classList.remove('fsm');
+  try{if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document)}catch(e){}
+  apiFs=false;fit();
+}
+$('fs').onclick=function(){this.blur();enterFs()};
+$('fsx').onclick=exitFs;
+function onFsChange(){
+  if(apiFs&&!document.fullscreenElement&&!document.webkitFullscreenElement&&document.body.classList.contains('fsm'))exitFs();else fit();
+}
+document.addEventListener('fullscreenchange',onFsChange);document.addEventListener('webkitfullscreenchange',onFsChange);
+addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,250));
 $('reset').onclick=()=>{hist=[];streak=0;best=0;render()};
 render();
 </script>
