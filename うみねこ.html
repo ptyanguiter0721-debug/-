@@ -154,7 +154,7 @@ function start(){clearTimeout(autoT);pos=Math.random()*20;p0=pos;t0=performance.
 function stop(t){
   const p=curP(t-cfg.lat),fin=Math.round(p),sym=wrap(fin);
   const off=((p-cfg.target+10)%20+20)%20-10,ms=off*cfg.speed*1000/20;
-  const dk=((sym-cfg.target+10)%20+20)%20-10,ok=Math.abs(off)<0.2;
+  const dk=((sym-cfg.target+10)%20+20)%20-10,ok=Math.abs(off)<0.25;
   if(cfg.snap)pos=fin;st='stop';lastStop=performance.now();$('btn').textContent='スタート';
   hist.push({ok,ms});streak=ok?streak+1:0;best=Math.max(best,streak);
   const sg=(ms>0?'+':'')+ms.toFixed(1)+'ms';
