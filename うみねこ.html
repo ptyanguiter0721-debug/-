@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>左リール ビタ押し練習</title>
+<style>
+:root{--bg:#f4f1ea;--fg:#222;--card:#fff;--mut:#777;--ac:#d6223a;--ok:#1a9a4a;--bd:#ddd;--reel:#f6efd9;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16161a;--fg:#eee;--card:#222228;--mut:#9a9aa5;--bd:#3a3a42;--reel:#e9e0c4;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#16161a;--fg:#eee;--card:#222228;--mut:#9a9aa5;--bd:#3a3a42;--reel:#e9e0c4;color-scheme:dark}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.wrap{max-width:520px;margin:0 auto;padding:12px}
+h1{font-size:18px;margin:4px 0 10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.reelbox{display:flex;flex-direction:column;align-items:center;gap:8px}
+canvas{border-radius:8px;border:2px solid var(--bd);max-width:100%}
+#res{min-height:48px;text-align:center;font-size:16px;font-weight:700;line-height:1.4}
+#res small{display:block;font-weight:400;color:var(--mut);font-size:13px}
+.ok{color:var(--ok)}.ng{color:var(--ac)}
+#btn{width:100%;padding:22px 0;font-size:22px;font-weight:800;border:0;border-radius:12px;background:var(--ac);color:#fff;touch-action:manipulation}
+#btn:active{filter:brightness(.88)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;flex-wrap:wrap}
+label{font-size:14px}
+select,input[type=range]{font-size:15px}
+select{padding:6px;border-radius:6px;border:1px solid var(--bd);background:var(--card);color:var(--fg)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats div{background:var(--bg);border-radius:8px;padding:8px 4px;font-size:12px;color:var(--mut)}
+.stats b{display:block;font-size:18px;color:var(--fg)}
+#hist{display:flex;gap:4px;flex-wrap:wrap;margin-top:10px}
+.chip{font-size:11px;padding:3px 6px;border-radius:10px;color:#fff}
+.chip.o{background:var(--ok)}.chip.x{background:var(--ac)}
+.mini{font-size:12px;color:var(--mut)}
+button.sub{padding:6px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>左リール ビタ押し練習</h1>
+
+<div class="card reelbox">
+<div class="mini" id="tgtInfo"></div>
+<canvas id="cv"></canvas>
+<div id="res">画像を読み込んでスタート</div>
+</div>
+
+<button id="btn">スタート</button>
+<div class="mini" style="text-align:center;margin:6px 0 12px">リール／ボタンをタップ、またはスペース・Enterキーでも止められます</div>
+
+<div class="card">
+<div class="row"><label for="tgt">狙う図柄（中段）</label><select id="tgt"></select></div>
+<div class="row"><label for="spd">1周の時間</label><select id="spd"></select></div>
+<div class="row"><label for="lat">入力遅延補正 <span id="latv">0</span>ms</label><input type="range" id="lat" min="-100" max="100" step="5" value="0"></div>
+<div class="row"><label><input type="checkbox" id="nums"> コマ番号を表示</label><label><input type="checkbox" id="auto"> 停止後に自動で再回転</label></div>
+<div class="row"><label><input type="checkbox" id="snap"> 停止時にコマへ吸着させる（オフ＝押した位置でそのまま停止）</label></div>
+<div class="row"><label for="imgf">リール画像（必須）</label><input type="file" id="imgf" accept="image/*"></div>
+<div class="row"><span class="mini">このアプリは、お送りいただいた番号付きリール画像（左に数字帯がある縦長画像）専用です。この画像を読み込んでください。画像はこの端末のブラウザ内にだけ保存され、外部には送信されません。</span><button class="sub" id="imgx">画像を外す</button></div>
+<div class="mini">遅延補正：+ にすると押した時刻をその分だけ前にずらして判定します（画面や端末の遅れの調整用）。</div>
+</div>
+
+<div class="card">
+<div class="stats">
+<div>試行<b id="sN">0</b></div><div>成功<b id="sO">0</b></div><div>成功率<b id="sR">-</b></div>
+<div>連続成功<b id="sS">0</b></div><div>最高連続<b id="sB">0</b></div><div>平均ズレ<b id="sM">-</b></div>
+</div>
+<div id="hist"></div>
+<div style="margin-top:10px;text-align:right"><button class="sub" id="reset">記録リセット</button></div>
+<div class="mini">平均ズレ：＋は遅め、−は早めに押す傾向です。</div>
+</div>
+<div class="mini" style="text-align:center">判定は「押した瞬間に中段に最も近い図柄が成功」として計算しています（スベリ無し）。</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const m=(t,n,c)=>({t,n,c});
+const S=[0,m('replay','リプレイ'),m('bell','ベル'),m('7','青7','#2f6bff'),m('cherry','チェリー'),m('melon','スイカ'),m('replay','リプレイ'),m('bell','ベル'),m('orange','オレンジ'),m('7','白7','#f4ecd0'),m('melon','スイカ'),m('replay','リプレイ'),m('bell','ベル'),m('bar','BAR'),m('cherry','チェリー'),m('melon','スイカ'),m('replay','リプレイ'),m('bell','ベル'),m('orange','オレンジ'),m('7','赤7','#e5202a'),m('melon','スイカ')];
+const wrap=k=>((k-1)%20+20)%20+1;
+const cv=$('cv'),ctx=cv.getContext('2d');
+const CW=260,CH=300,H=100,dpr=window.devicePixelRatio||1;
+cv.width=CW*dpr;cv.height=CH*dpr;cv.style.width=CW+'px';cv.style.height=CH+'px';
+
+const IMG=new Image();let KW=0,KH=0,SX=0;
+IMG.onload=()=>{SX=IMG.naturalWidth*0.356;KW=IMG.naturalWidth*0.621;KH=IMG.naturalHeight/20};
+try{const sv=localStorage.getItem('bita_img');if(sv)IMG.src=sv}catch(e){}
+let cfg={target:19,speed:0.75,lat:0,nums:true,auto:true,snap:false};
+try{Object.assign(cfg,JSON.parse(localStorage.getItem('bita_cfg')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('bita_cfg',JSON.stringify(cfg))}catch(e){}};
+
+let st='stop',pos=1,p0=1,t0=0,lastStop=0,autoT=null,hist=[],streak=0,best=0;
+
+/* UI setup */
+for(let k=1;k<=20;k++){const o=document.createElement('option');o.value=k;o.textContent=k+'　'+S[k].n;$('tgt').appendChild(o)}
+for(let i=0;i<=5;i++){const v=(0.70+i*0.01).toFixed(2);const o=document.createElement('option');o.value=v;o.textContent=v+' 秒';$('spd').appendChild(o)}
+function syncUI(){
+  $('tgt').value=cfg.target;$('spd').value=(+cfg.speed).toFixed(2);$('lat').value=cfg.lat;$('latv').textContent=cfg.lat;
+  $('nums').checked=cfg.nums;$('auto').checked=cfg.auto;$('snap').checked=cfg.snap;
+  $('tgtInfo').textContent='狙い：'+cfg.target+'番 '+S[cfg.target].n+' を中段にビタ止め';
+}
+syncUI();
+
+const curP=t=>p0+(t-t0)/(cfg.speed*1000)*20;
+
+function onSet(f){return function(){f.call(this);this.blur&&this.blur();save();syncUI();if(st==='stop')draw(pos)}}
+$('tgt').onchange=onSet(function(){cfg.target=+this.value});
+$('spd').onchange=onSet(function(){const now=performance.now();if(st==='spin'){p0=curP(now);t0=now}cfg.speed=+this.value});
+$('lat').oninput=function(){cfg.lat=+this.value;$('latv').textContent=cfg.lat;save()};
+$('nums').onchange=onSet(function(){cfg.nums=this.checked});
+$('snap').onchange=onSet(function(){cfg.snap=this.checked});
+$('auto').onchange=onSet(function(){cfg.auto=this.checked});
+
+/* drawing */
+const hasImg=()=>IMG.complete&&IMG.naturalWidth&&KW;
+function draw(p){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle='#e9e0c4';ctx.fillRect(0,0,CW,CH);
+  if(!hasImg()){ctx.fillStyle='#555';ctx.font='15px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('リール画像を読み込んでください',CW/2,CH/2-10);ctx.fillText('（下の設定欄から選択）',CW/2,CH/2+14);return}
+  ctx.save();ctx.beginPath();ctx.rect(0,0,CW,CH);ctx.clip();
+  const dw=CW-44,dh=dw*KH/KW,sc=H/dh;
+  for(let k=1;k<=20;k++){
+    const d=((k-p+10)%20+20)%20-10;
+    if(Math.abs(d)>2)continue;
+    const y=CH/2-d*H;
+    ctx.drawImage(IMG,SX,(20-k)*KH,KW,KH,44,y-H/2,dw,H);
+    if(cfg.nums){ctx.fillStyle='#fff';ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.strokeText(k,22,y);ctx.fillText(k,22,y)}
+  }
+  ctx.restore();
+}
+(function loop(){if(st==='spin')pos=curP(performance.now());draw(pos);requestAnimationFrame(loop)})();
+
+/* game */
+function start(){clearTimeout(autoT);pos=Math.random()*20;p0=pos;t0=performance.now();st='spin';$('btn').textContent='STOP';$('res').innerHTML='回転中'}
+function stop(t){
+  const p=curP(t-cfg.lat),fin=Math.round(p),sym=wrap(fin);
+  const off=((p-cfg.target+10)%20+20)%20-10,ms=off*cfg.speed*1000/20;
+  const dk=((sym-cfg.target+10)%20+20)%20-10,ok=dk===0;
+  pos=cfg.snap?fin:p;st='stop';lastStop=performance.now();$('btn').textContent='スタート';
+  hist.push({ok,ms});streak=ok?streak+1:0;best=Math.max(best,streak);
+  const sg=(ms>0?'+':'')+ms.toFixed(1)+'ms';
+  $('res').innerHTML=ok
+    ?'<span class="ok">成功！</span><small>押下位置 '+sg+'（'+(Math.abs(ms)<3?'ほぼビタ':ms>0?'やや遅め':'やや早め')+'）</small>'
+    :'<span class="ng">失敗… '+Math.abs(dk)+'コマ'+(dk>0?'遅れ':'早い')+'</span><small>停止：'+sym+'番 '+S[sym].n+' ／ 押下位置 '+sg+'</small>';
+  render();
+  if(cfg.auto)autoT=setTimeout(start,1000);
+}
+function press(t){
+  if(st==='spin')stop(t);
+  else if(!hasImg())$('res').textContent='先にリール画像を読み込んでください';
+  else if(performance.now()-lastStop>250)start();
+}
+function evT(e){const n=performance.now();return(e.timeStamp>0&&e.timeStamp<=n+5)?e.timeStamp:n}
+$('btn').addEventListener('pointerdown',e=>{e.preventDefault();press(evT(e))});
+cv.addEventListener('pointerdown',e=>{e.preventDefault();press(evT(e))});
+addEventListener('keydown',e=>{
+  if((e.code==='Space'||e.code==='Enter')&&!e.repeat){e.preventDefault();press(evT(e))}
+});
+
+function render(){
+  const n=hist.length,o=hist.filter(h=>h.ok).length;
+  $('sN').textContent=n;$('sO').textContent=o;$('sR').textContent=n?Math.round(o/n*100)+'%':'-';
+  $('sS').textContent=streak;$('sB').textContent=best;
+  if(n){const a=hist.reduce((s,h)=>s+h.ms,0)/n;$('sM').textContent=(a>0?'+':'')+a.toFixed(1)+'ms'}else $('sM').textContent='-';
+  $('hist').innerHTML=hist.slice(-12).map(h=>'<span class="chip '+(h.ok?'o':'x')+'">'+(h.ms>0?'+':'')+h.ms.toFixed(0)+'ms</span>').join('');
+}
+$('imgf').onchange=function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{IMG.src=r.result;try{localStorage.setItem('bita_img',r.result)}catch(e){}};r.readAsDataURL(f)};
+$('imgx').onclick=()=>{try{localStorage.removeItem('bita_img')}catch(e){}IMG.removeAttribute('src');KW=0;$('imgf').value=''};
+$('reset').onclick=()=>{hist=[];streak=0;best=0;render()};
+render();
+</script>
+</body>
+</html>
