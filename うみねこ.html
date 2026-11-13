@@ -102,7 +102,7 @@ fit();
 const IMG=new Image();let KW=0,KH=0,SX=0;
 IMG.onload=()=>{SX=IMG.naturalWidth*0.356;KW=IMG.naturalWidth*0.621;KH=IMG.naturalHeight/20};
 try{const sv=localStorage.getItem('bita_img');if(sv)IMG.src=sv}catch(e){}
-let cfg={target:19,speed:0.75,lat:0,nums:true,auto:false,snap:false};
+let cfg={target:19,speed:0.78,lat:0,nums:true,auto:false,snap:false};
 try{Object.assign(cfg,JSON.parse(localStorage.getItem('bita_cfg')||'{}'))}catch(e){}
 if(!cfg.v2){cfg.auto=false;cfg.v2=1}
 const save=()=>{try{localStorage.setItem('bita_cfg',JSON.stringify(cfg))}catch(e){}};
@@ -111,7 +111,7 @@ let st='stop',pos=1,p0=1,t0=0,lastStop=0,autoT=null,hist=[],streak=0,best=0;
 
 /* UI setup */
 for(let k=1;k<=20;k++){const o=document.createElement('option');o.value=k;o.textContent=k+'　'+S[k].n;$('tgt').appendChild(o)}
-for(let i=0;i<=5;i++){const v=(0.70+i*0.01).toFixed(2);const o=document.createElement('option');o.value=v;o.textContent=v+' 秒';$('spd').appendChild(o)}
+for(let i=0;i<=8;i++){const v=(0.70+i*0.01).toFixed(2);const o=document.createElement('option');o.value=v;o.textContent=v+' 秒';$('spd').appendChild(o)}
 function syncUI(){
   $('tgt').value=cfg.target;$('spd').value=(+cfg.speed).toFixed(2);$('lat').value=cfg.lat;$('latv').textContent=cfg.lat;
   $('nums').checked=cfg.nums;$('auto').checked=cfg.auto;$('snap').checked=cfg.snap;
